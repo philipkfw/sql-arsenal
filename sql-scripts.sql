@@ -36,7 +36,7 @@ INSERT INTO table_1 (
 -- Combining two data tables with different columns
 -- Goal: join clauses can easily filter values without knowing - thus should be unioned
 
-WITH CTE AS (
+WITH my_cte AS (
     SELECT
         primary_key
         ,CAST(0 AS INT) AS annual_revenue
@@ -56,6 +56,38 @@ SELECT
     primary_key
     ,SUM(annual_revenue) AS annual_revenue
     ,SUM(annual_cost) AS annual_cost
-FROM CTE
-GROUP BY 1
+FROM my_cte
+GROUP BY 1;
+
+
+-- QA Check: Reconciling between upstream table and downstream table
+-- Goal: to easily validate alignment of aggregate results between multiple data sources
+
+WITH upstream_cte AS (
+    SELECT
+        YEAR(dt) AS yr
+        ,MONTH(dt) AS mnth
+        ,COUNT(*) AS record_count
+    FROM upstream_table
+    WHERE 1=1
+        AND YEAR(dt) = YEAR(CURRENT_DATE)
+        AND MONTH(dt) = MONTH(CURRENT_DATE)
+    GROUP BY 1,2
+),
+
+downstream_cte AS (
+    SELECT
+        YEAR(dt) AS yr
+        ,MONTH(dt) AS mnth
+        ,COUNT(*) AS record_count
+    FROM downstream_table
+    WHERE 1=1
+        AND YEAR(dt) = YEAR(CURRENT_DATE)
+        AND MONTH(dt) = MONTH(CURRENT_DATE)
+    GROUP BY 1,2
+)
+
+SELECT 'upstream table' AS TB, record_count FROM upstream_cte
+UNION ALL
+SELECT 'downstream table' AS TB, record_count FROM downstream_cte;
 
